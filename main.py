@@ -1,14 +1,16 @@
 import argparse
 from my_rsa import rsa_encrypt, rsa_decrypt, rsa_gen_keys
 import math
+import hashlib
 
 def sign(msg, n, e):
-    h = hash(msg)
+    h = int(hashlib.sha1(msg.encode("utf-8")).hexdigest(), 16)
+    print(h)
     return rsa_encrypt(n, e, h)
 
 def verify(msg, signature, n, d):
     h = rsa_decrypt(n, d, signature)
-    return hash(msg) == h 
+    return int(hashlib.sha1(msg.encode("utf-8")).hexdigest(), 16) == h 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -29,29 +31,22 @@ if __name__ == "__main__":
             n, _, _, e, d = [int(x) for x in f.read().split()]
 
         with open(args.input, 'r') as f:
-            message = r.read()
+            message = f.read()
 
         with open(args.output, 'w') as f:
-            f.write(sign(message, n, d))
+            f.write(str(sign(message, n, e)))
 
     elif args.command == "verify":
         with open(args.key, 'r') as f:
             n, _, _, e, d = [int(x) for x in f.read().split()]
 
         with open(args.input, 'r') as f:
-            message = r.read()
+            message = f.read()
 
-        with open(args.output, 'w') as f:
-            f.write(sign(message, n, d))
+        with open(args.sign, 'r') as f:
+            signature = int(f.read())
 
-
-    s = "hello world"
-    m = int.from_bytes(s.encode(), byteorder='little')
-
-    n, _, _, e, d = rsa_gen_keys()
-
-    me = rsa_encrypt(n, e, m)
-    md = rsa_decrypt(n, d, me)
-
-    length = math.ceil(md.bit_length() / 8)
-    sd = md.to_bytes(length, byteorder='little').decode()
+        if verify(message, signature, n, d):
+            print("Signature is correct")
+        else:
+            print("Wrong signature")
